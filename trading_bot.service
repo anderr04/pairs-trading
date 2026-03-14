@@ -1,0 +1,17 @@
+[Unit]
+Description=Pairs Trading Divergence Bot
+After=network.target
+
+[Service]
+Type=simple
+User=root
+# Adjust this path based on where you clone the repository on the VM
+WorkingDirectory=/opt/pairs_trading_bot
+ExecStart=/usr/bin/python3 /opt/pairs_trading_bot/main.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/trading_bot_stdout.log
+StandardError=append:/var/log/trading_bot_stderr.log
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,17 @@
+common:
+  log_level: "INFO"
+  log_file: "trading_bot.log"
+  pairs_file: "pairs.csv"
+  sleep_interval_seconds: 3600 # Run every hour
+
+trading:
+  zscore_entry_threshold: 2.0
+  zscore_exit_threshold: 0.5
+  stop_loss_pct: 0.05
+  capital: 1000.0
+  commission_pct: 0.001 # 0.1% per trade
+  slippage_pct: 0.0005 # 0.05% slippage
+
+data:
+  lookback_days: 252 # 1 year trading days
+  interval: "1d" # daily timeframe
