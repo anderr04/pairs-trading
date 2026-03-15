@@ -1,28 +1,21 @@
 stock1,stock2
-# Commodities / Precious Metals
 GLD,SLV
 IAU,SLV
-# Tech / Communications
 GOOGL,META
 AAPL,MSFT
 AMZN,NFLX
-# Financials
 JPM,BAC
 MS,GS
 V,MA
-# Energy
 CVX,XOM
 COP,OXY
 XLE,VDE
-# Consumer / Retail
 KO,PEP
 WMT,TGT
 PG,JNJ
 MCD,SBUX
 HD,LOW
-# Industrials / Materials
 RIO,BHP
 CAT,DE
-# Broad Market indices
 SPY,IVV
 QQQ,XLK
