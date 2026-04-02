@@ -91,7 +91,8 @@ def run_loop(config: dict, data_mgr: DataManager, analyzer: Analyzer, strategy: 
                     signal=signal,
                     hedge_ratio=analysis['hedge_ratio'],
                     price_y=series_y.iloc[-1],
-                    price_x=series_x.iloc[-1]
+                    price_x=series_x.iloc[-1],
+                    z_score=analysis['z_score']
                 )
     except Exception as e:
         logger.error(f"Error in main loop cycle: {e}", exc_info=True)

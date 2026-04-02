@@ -26,8 +26,10 @@ venv/
 .venv/
 ENV/
 
-# Logs
+# Logs and Data
 *.log
 trading_bot.log
 trading_bot_stdout.log
 trading_bot_stderr.log
+open_positions.json
+trades_history.csv
