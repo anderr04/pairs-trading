@@ -36,14 +36,12 @@ def load_config(config_path: str = "config.yaml") -> dict:
 def run_loop(config: dict, data_mgr: DataManager, analyzer: Analyzer, strategy: Strategy, execution: Execution, logger: logging.Logger):
     """
     Core sequence: Fetch Data -> Analyze Cointegration -> Generate Signals -> Execute Orders
-    Wrapped in broad try/except to prevent loop failure from stopping the VM service.
     """
     pairs = data_mgr.load_pairs(config['common'].get('pairs_file', 'pairs.csv'))
     if not pairs:
         logger.warning("No pairs loaded. Will wait and try next cycle.")
         return
         
-    # Collect unique tickers for batched downloading
     tickers = set()
     for y, x in pairs:
         tickers.add(y)
@@ -57,31 +55,30 @@ def run_loop(config: dict, data_mgr: DataManager, analyzer: Analyzer, strategy: 
             logger.warning("No data retrieved from API. Skipping this cycle.")
             return
 
+        market_state = {}
+
         for stock_y, stock_x in pairs:
             pair_key = f"{stock_y}_{stock_x}"
             
-            # Verify we have data for both legs
             if stock_y not in df_prices.columns or stock_x not in df_prices.columns:
-                logger.warning(f"Data missing for pair {pair_key}. Skipping.")
                 continue
                 
             series_y = df_prices[stock_y]
             series_x = df_prices[stock_x]
             
-            # Analyze mathematically (OLS -> ADF -> Spread -> Z-Score)
             analysis = analyzer.perform_cointegration_analysis(series_y, series_x)
             if not analysis:
-                logger.debug(f"Analysis failed for {pair_key}. Skipping.")
                 continue
                 
             current_pos = execution.get_position(pair_key)
             
-            # Filter entries: only consider trading statistically cointegrated pairs
+            # Save the current state for transparency and analysis.py
+            if analysis["is_cointegrated"]:
+                market_state[pair_key] = round(analysis["z_score"], 3)
+            
             if not current_pos and not analysis["is_cointegrated"]:
-                logger.debug(f"{pair_key} not currently cointegrated (p_val={analysis['p_value']:.4f}). Skipping.")
                 continue
 
-            # Check logic strategy for action
             signal = strategy.generate_signals(analysis, current_pos)
             
             if signal != "HOLD":
@@ -94,6 +91,19 @@ def run_loop(config: dict, data_mgr: DataManager, analyzer: Analyzer, strategy: 
                     price_x=series_x.iloc[-1],
                     z_score=analysis['z_score']
                 )
+
+        # Write market state for user visibility
+        try:
+            import json
+            with open("market_state.json", "w") as f:
+                json.dump(market_state, f, indent=4)
+            # Find the most extreme z-score to log it as a heartbeat metric
+            if market_state:
+                closest_pair = max(market_state.items(), key=lambda x: abs(x[1]))
+                logger.info(f"Market Scan complete. Closest pair to trigger: {closest_pair[0]} (Z-Score: {closest_pair[1]}). All other {len(market_state)-1} valid pairs were REJECTED (Hold).")
+        except Exception as e:
+            logger.error(f"Failed to dump market state: {e}")
+
     except Exception as e:
         logger.error(f"Error in main loop cycle: {e}", exc_info=True)
 

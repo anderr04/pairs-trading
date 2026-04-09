@@ -5,11 +5,59 @@ import os
 def analyze_trades():
     csv_file = "trades_history.csv"
     json_file = "open_positions.json"
+    log_file = "trading_bot.log"
     
     print("\n" + "="*50)
     print("      PAIRS TRADING BOT - PERFORMANCE ANALYTICS")
     print("="*50 + "\n")
     
+    print(f"--- BOT HEALTH STATUS ---")
+    if os.path.exists(log_file):
+        try:
+            with open(log_file, "r") as f:
+                lines = f.readlines()
+                last_logs = lines[-10:] if len(lines) >= 10 else lines
+                # Detect the last timestamp specifically mentioning waking up or sleeping
+                last_time = "Unknown"
+                status = "Idle or Unknown"
+                for line in reversed(last_logs):
+                    if "Starting analysis cycle" in line or "Loaded" in line or "Cycle complete" in line:
+                        last_time = line[:19]
+                        if "Cycle complete" in line:
+                            status = "Sleeping (Waiting for next hour)"
+                        elif "Starting analysis" in line or "Loaded" in line:
+                            status = "Actively Scanning Market"
+                        break
+                print(f"Status:        {status}")
+                print(f"Last ping:     {last_time}")
+                print(f"Diagnosis:     Bot is ALIVE and actively watching the market.")
+        except Exception:
+            print("Status check failed or file locked.")
+    else:
+        print("Diagnosis: No log file found. The bot has never run here.")
+    print()
+    
+    print(f"--- MARKET SCAN REJECTIONS (Closest Opportunities) ---")
+    state_file = "market_state.json"
+    if os.path.exists(state_file):
+        try:
+            with open(state_file, "r") as f:
+                market_state = json.load(f)
+            if market_state:
+                # Sort absolute Z-Scores descending
+                sorted_pairs = sorted(market_state.items(), key=lambda x: abs(x[1]), reverse=True)
+                print(f"Currently tracking {len(sorted_pairs)} valid cointegrated pairs.")
+                print(f"Top 3 pairs closest to Z-Score threshold (Hold/Rejected):")
+                for i, (pair, z) in enumerate(sorted_pairs[:3]):
+                    print(f"  {i+1}. {pair}: Z-Score = {z:.3f}")
+            else:
+                print("No cointegrated pairs found in the last scan.")
+        except Exception as e:
+            print(f"Failed to read market state: {e}")
+    else:
+        print("No market state data available yet. Waiting for next cycle.")
+    print()
+
     if os.path.exists(csv_file):
         df = pd.read_csv(csv_file)
         if df.empty:
